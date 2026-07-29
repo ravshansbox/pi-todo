@@ -45,7 +45,7 @@ interface TodoDetails {
   action: TodoAction;
   todos: Todo[];
   nextId: number;
-  error?: string;
+  error?: string | undefined;
 }
 
 const TodoParams = Type.Object({
@@ -287,8 +287,8 @@ const overlayLines = (todos: Todo[], theme: Theme, width: number): string[] => {
 
 /** UI component for the /todos command. */
 class TodoListComponent {
-  private cachedWidth?: number;
-  private cachedLines?: string[];
+  private cachedWidth?: number | undefined;
+  private cachedLines?: string[] | undefined;
 
   constructor(
     private todos: Todo[],

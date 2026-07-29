@@ -1,17 +1,9 @@
 {
-  "name": "pi-todo",
-  "version": "1.0.0",
+  "name": "@ravshansbox/pi-todo",
+  "version": "1.2.0",
   "description": "Pi extension: todo list tool + /todos command, with state stored in session entries",
   "type": "module",
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "todo"
-  ],
-  "license": "ISC",
-  "files": [
-    "extensions"
-  ],
+  "license": "MIT",
   "pi": {
     "extensions": [
       "./extensions"
@@ -23,17 +15,33 @@
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravshansbox/pi-todo.git"
+  },
+  "homepage": "https://github.com/ravshansbox/pi-todo#readme",
+  "bugs": {
+    "url": "https://github.com/ravshansbox/pi-todo/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "todo"
+  ],
   "devDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*",
-    "typebox": "*",
-    "typescript": "^5"
+    "@types/node": "^26.1.2",
+    "typescript": "^6.0.3"
   },
+  "files": [
+    "extensions",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@types/node": "^26.1.2"
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck"
   }
 }

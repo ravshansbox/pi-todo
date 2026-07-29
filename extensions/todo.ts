@@ -24,15 +24,6 @@ import { type Static, Type } from 'typebox';
 
 const TOOL_NAME = 'todo';
 const WIDGET_KEY = 'todo';
-/**
- * Custom session entry recording a user-initiated `/todos clear`. State is
- * derived from the session, so clearing must leave a durable marker rather
- * than only mutating memory — otherwise the next reload would restore the
- * list from the preceding tool result.
- */
-const CLEAR_ENTRY_TYPE = 'todo_cleared';
-/** Sole argument accepted by `/todos`. */
-const CLEAR_ARG = 'clear';
 /** Items shown before collapsing to a "N more" line. */
 const WIDGET_MAX_ITEMS = 5;
 const RESULT_MAX_ITEMS = 5;
@@ -239,14 +230,14 @@ const RESULT_RENDERERS: Record<TodoAction, (args: ResultRenderArgs) => Text> = {
 
 const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   const done = todos.filter((t) => t.done).length;
-  const header =
-    theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`);
   // Open items first, so the widget stays useful as the list grows.
   const ordered = [
     ...todos.filter((t) => !t.done),
     ...todos.filter((t) => t.done),
   ];
-  const lines = [header];
+  const lines = [
+    theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`),
+  ];
   for (const todo of ordered.slice(0, WIDGET_MAX_ITEMS)) {
     lines.push(styledTodoLine(todo, theme, 'text'));
   }
@@ -352,13 +343,6 @@ const reconstructState = (ctx: ExtensionContext, state: TodoState): void => {
   state.nextId = 1;
 
   for (const entry of ctx.sessionManager.getBranch()) {
-    if (entry.type === 'custom') {
-      if (entry.customType === CLEAR_ENTRY_TYPE) {
-        state.todos = [];
-        state.nextId = 1;
-      }
-      continue;
-    }
     if (entry.type !== 'message') continue;
     const msg = entry.message;
     if (msg.role !== 'toolResult' || msg.toolName !== TOOL_NAME) continue;
@@ -427,48 +411,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand('todos', {
-    description: 'Show all todos on the current branch, or `clear` to remove them',
-
-    getArgumentCompletions: (argumentPrefix) =>
-      CLEAR_ARG.startsWith(argumentPrefix.trim().toLowerCase())
-        ? [
-            {
-              value: CLEAR_ARG,
-              label: CLEAR_ARG,
-              description: 'Remove all todos on the current branch',
-            },
-          ]
-        : null,
-
-    handler: async (args, ctx) => {
-      const argument = args.trim().toLowerCase();
-
-      if (argument === CLEAR_ARG) {
-        const count = state.todos.length;
-        if (count === 0) {
-          ctx.ui.notify('No todos to clear', 'info');
-          return;
-        }
-        // Persist first, so the reset survives reload and branching.
-        pi.appendEntry(CLEAR_ENTRY_TYPE);
-        state.todos = [];
-        state.nextId = 1;
-        renderWidget(ctx, state.todos);
-        ctx.ui.notify(
-          `Cleared ${count} todo${count === 1 ? '' : 's'}`,
-          'info',
-        );
-        return;
-      }
-
-      if (argument) {
-        ctx.ui.notify(
-          `Unknown argument "${args.trim()}". Usage: /todos [${CLEAR_ARG}]`,
-          'error',
-        );
-        return;
-      }
-
+    description: 'Show all todos on the current branch',
+    handler: async (_args, ctx) => {
       if (ctx.mode !== 'tui') {
         ctx.ui.notify('/todos requires interactive mode', 'error');
         return;

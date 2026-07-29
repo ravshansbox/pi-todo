@@ -5,8 +5,11 @@ Pi package with a single extension (`extensions/todo.ts`, copied from pi's
 
 - `todo` tool for the model — actions `list`, `add`, `toggle`, `clear`
 - `/todos` command showing the current branch's todos in a TUI overlay
+- `/todos clear` to remove every todo on the current branch
 
 State lives in tool-result details, so branching keeps the list correct.
+`/todos clear` records a `todo_cleared` session entry rather than only
+resetting memory, so the reset survives reloads and branches with it.
 
 ## Use
 

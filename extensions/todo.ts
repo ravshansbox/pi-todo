@@ -4,8 +4,8 @@
  * This extension:
  * - Registers a `todo` tool for the LLM to manage todos
  * - Registers a `/todos` command for users to view the list
- * - Shows a persistent widget above the editor, collapsed to just the counter
- *   once every todo is done
+ * - Shows a persistent widget above the editor, which disappears once every
+ *   todo is checked off because the list clears itself
  *
  * State is stored in tool result details (not external files), which allows
  * proper branching - when you branch, the todo state is automatically
@@ -156,6 +156,21 @@ const ACTIONS: Record<TodoAction, ActionHandler> = {
       );
     }
     todo.done = !todo.done;
+
+    // Finishing the last open item retires the whole list: the completed rows
+    // carry no further action, and the tool result above still records them.
+    // Resetting here (rather than in the widget) persists via the snapshot, so
+    // it survives reloads and branches correctly.
+    if (state.todos.every((t) => t.done)) {
+      const cleared = state.todos.length;
+      state.todos = [];
+      state.nextId = 1;
+      return toolResult(
+        `Todo #${todo.id} completed — all ${cleared} done, list cleared`,
+        snapshot(state, 'toggle'),
+      );
+    }
+
     return toolResult(
       `Todo #${todo.id} ${todo.done ? 'completed' : 'uncompleted'}`,
       snapshot(state, 'toggle'),
@@ -226,9 +241,6 @@ const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   const done = todos.filter((t) => t.done).length;
   const header =
     theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`);
-  // Nothing left to act on, so the item lines add no information: collapse to
-  // the header alone and give the space back to the transcript.
-  if (done === todos.length) return [header];
   // Open items first, so the widget stays useful as the list grows.
   const ordered = [
     ...todos.filter((t) => !t.done),

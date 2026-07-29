@@ -4,7 +4,8 @@
  * This extension:
  * - Registers a `todo` tool for the LLM to manage todos
  * - Registers a `/todos` command for users to view the list
- * - Shows a persistent widget above the editor
+ * - Shows a persistent widget above the editor, collapsed to just the counter
+ *   once every todo is done
  *
  * State is stored in tool result details (not external files), which allows
  * proper branching - when you branch, the todo state is automatically
@@ -223,14 +224,17 @@ const RESULT_RENDERERS: Record<TodoAction, (args: ResultRenderArgs) => Text> = {
 
 const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   const done = todos.filter((t) => t.done).length;
+  const header =
+    theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`);
+  // Nothing left to act on, so the item lines add no information: collapse to
+  // the header alone and give the space back to the transcript.
+  if (done === todos.length) return [header];
   // Open items first, so the widget stays useful as the list grows.
   const ordered = [
     ...todos.filter((t) => !t.done),
     ...todos.filter((t) => t.done),
   ];
-  const lines = [
-    theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`),
-  ];
+  const lines = [header];
   for (const todo of ordered.slice(0, WIDGET_MAX_ITEMS)) {
     lines.push(styledTodoLine(todo, theme, 'text'));
   }

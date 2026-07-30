@@ -1,6 +1,6 @@
 # pi-todo
 
-Pi package with a single extension (`extensions/todo.ts`, copied from pi's
+Pi package with a single extension (`index.ts`, copied from pi's
 `examples/extensions/todo.ts`):
 
 - `todo` tool for the model — actions `list`, `add`, `toggle`, `clear`

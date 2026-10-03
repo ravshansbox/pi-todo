@@ -1,6 +1,6 @@
 {
   "name": "@ravshansbox/pi-todo",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Pi extension: todo list tool + /todos command, with state stored in session entries",
   "license": "MIT",
   "type": "module",

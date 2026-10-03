@@ -68,76 +68,48 @@ const formatPlainList = (todos: Todo[]): string =>
  * `openColor` differs per surface: the widget uses full-contrast text, while
  * inline tool results stay muted so they recede into the transcript.
  */
-const styledTodoLine = (
-  todo: Todo,
-  theme: Theme,
-  openColor: 'text' | 'muted',
-): string => {
+const styledTodoLine = (todo: Todo, theme: Theme, openColor: 'text' | 'muted'): string => {
   const check = todo.done ? theme.fg('success', '✓') : theme.fg('dim', '○');
-  const text = todo.done
-    ? theme.fg('dim', todo.text)
-    : theme.fg(openColor, todo.text);
+  const text = todo.done ? theme.fg('dim', todo.text) : theme.fg(openColor, todo.text);
   return `${check} ${theme.fg('accent', `#${todo.id}`)} ${text}`;
 };
 
-const firstText = (
-  content: readonly { type: string; text?: string }[],
-): string => {
+const firstText = (content: readonly { type: string; text?: string }[]): string => {
   const first = content[0];
   return first?.type === 'text' ? (first.text ?? '') : '';
 };
 
 // --- Tool actions -----------------------------------------------------------
 
-const toolResult = (
-  text: string,
-  details: TodoDetails,
-): AgentToolResult<TodoDetails> => ({
+const toolResult = (text: string, details: TodoDetails): AgentToolResult<TodoDetails> => ({
   content: [{ type: 'text', text }],
   details,
 });
 
-const snapshot = (
-  state: TodoState,
-  action: TodoAction,
-  error?: string,
-): TodoDetails => ({
+const snapshot = (state: TodoState, action: TodoAction, error?: string): TodoDetails => ({
   action,
   todos: [...state.todos],
   nextId: state.nextId,
   error,
 });
 
-type ActionHandler = (
-  state: TodoState,
-  params: TodoParams,
-) => AgentToolResult<TodoDetails>;
+type ActionHandler = (state: TodoState, params: TodoParams) => AgentToolResult<TodoDetails>;
 
 const ACTIONS: Record<TodoAction, ActionHandler> = {
-  list: (state) =>
-    toolResult(formatPlainList(state.todos), snapshot(state, 'list')),
+  list: (state) => toolResult(formatPlainList(state.todos), snapshot(state, 'list')),
 
   add: (state, params) => {
     if (!params.text) {
-      return toolResult(
-        'Error: text required for add',
-        snapshot(state, 'add', 'text required'),
-      );
+      return toolResult('Error: text required for add', snapshot(state, 'add', 'text required'));
     }
     const todo: Todo = { id: state.nextId++, text: params.text, done: false };
     state.todos.push(todo);
-    return toolResult(
-      `Added todo #${todo.id}: ${todo.text}`,
-      snapshot(state, 'add'),
-    );
+    return toolResult(`Added todo #${todo.id}: ${todo.text}`, snapshot(state, 'add'));
   },
 
   toggle: (state, params) => {
     if (params.id === undefined) {
-      return toolResult(
-        'Error: id required for toggle',
-        snapshot(state, 'toggle', 'id required'),
-      );
+      return toolResult('Error: id required for toggle', snapshot(state, 'toggle', 'id required'));
     }
     const todo = state.todos.find((t) => t.id === params.id);
     if (!todo) {
@@ -215,15 +187,10 @@ const RESULT_RENDERERS: Record<TodoAction, (args: ResultRenderArgs) => Text> = {
     );
   },
 
-  toggle: ({ text, theme }) =>
-    new Text(theme.fg('success', '✓ ') + theme.fg('muted', text), 0, 0),
+  toggle: ({ text, theme }) => new Text(theme.fg('success', '✓ ') + theme.fg('muted', text), 0, 0),
 
   clear: ({ theme }) =>
-    new Text(
-      theme.fg('success', '✓ ') + theme.fg('muted', 'Cleared all todos'),
-      0,
-      0,
-    ),
+    new Text(theme.fg('success', '✓ ') + theme.fg('muted', 'Cleared all todos'), 0, 0),
 };
 
 // --- Widget and overlay -----------------------------------------------------
@@ -231,13 +198,8 @@ const RESULT_RENDERERS: Record<TodoAction, (args: ResultRenderArgs) => Text> = {
 const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   const done = todos.filter((t) => t.done).length;
   // Open items first, so the widget stays useful as the list grows.
-  const ordered = [
-    ...todos.filter((t) => !t.done),
-    ...todos.filter((t) => t.done),
-  ];
-  const lines = [
-    theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`),
-  ];
+  const ordered = [...todos.filter((t) => !t.done), ...todos.filter((t) => t.done)];
+  const lines = [theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`)];
   for (const todo of ordered.slice(0, WIDGET_MAX_ITEMS)) {
     lines.push(styledTodoLine(todo, theme, 'text'));
   }
@@ -251,11 +213,9 @@ const widgetLines = (todos: Todo[], theme: Theme): string[] => {
 /** Renders the widget above the editor, clearing it when there is nothing to show. */
 const renderWidget = (ctx: ExtensionContext, todos: Todo[]): void => {
   if (!ctx.hasUI) return;
-  ctx.ui.setWidget(
-    WIDGET_KEY,
-    todos.length === 0 ? undefined : widgetLines(todos, ctx.ui.theme),
-    { placement: 'aboveEditor' },
-  );
+  ctx.ui.setWidget(WIDGET_KEY, todos.length === 0 ? undefined : widgetLines(todos, ctx.ui.theme), {
+    placement: 'aboveEditor',
+  });
 };
 
 const overlayLines = (todos: Todo[], theme: Theme, width: number): string[] => {
@@ -272,31 +232,21 @@ const overlayLines = (todos: Todo[], theme: Theme, width: number): string[] => {
 
   if (todos.length === 0) {
     lines.push(
-      truncateToWidth(
-        `  ${theme.fg('dim', 'No todos yet. Ask the agent to add some!')}`,
-        width,
-      ),
+      truncateToWidth(`  ${theme.fg('dim', 'No todos yet. Ask the agent to add some!')}`, width),
     );
   } else {
     const done = todos.filter((t) => t.done).length;
     lines.push(
-      truncateToWidth(
-        `  ${theme.fg('muted', `${done}/${todos.length} completed`)}`,
-        width,
-      ),
+      truncateToWidth(`  ${theme.fg('muted', `${done}/${todos.length} completed`)}`, width),
     );
     lines.push('');
     for (const todo of todos) {
-      lines.push(
-        truncateToWidth(`  ${styledTodoLine(todo, theme, 'text')}`, width),
-      );
+      lines.push(truncateToWidth(`  ${styledTodoLine(todo, theme, 'text')}`, width));
     }
   }
 
   lines.push('');
-  lines.push(
-    truncateToWidth(`  ${theme.fg('dim', 'Press Escape to close')}`, width),
-  );
+  lines.push(truncateToWidth(`  ${theme.fg('dim', 'Press Escape to close')}`, width));
   lines.push('');
   return lines;
 };
@@ -374,8 +324,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: TOOL_NAME,
     label: 'Todo',
-    description:
-      'Manage a todo list. Actions: list, add (text), toggle (id), clear',
+    description: 'Manage a todo list. Actions: list, add (text), toggle (id), clear',
     parameters: TodoParams,
 
     async execute(_toolCallId, params) {
@@ -383,12 +332,9 @@ export default function (pi: ExtensionAPI) {
     },
 
     renderCall(args, theme) {
-      let text =
-        theme.fg('toolTitle', theme.bold('todo ')) +
-        theme.fg('muted', args.action);
+      let text = theme.fg('toolTitle', theme.bold('todo ')) + theme.fg('muted', args.action);
       if (args.text) text += ` ${theme.fg('dim', `"${args.text}"`)}`;
-      if (args.id !== undefined)
-        text += ` ${theme.fg('accent', `#${args.id}`)}`;
+      if (args.id !== undefined) text += ` ${theme.fg('accent', `#${args.id}`)}`;
       return new Text(text, 0, 0);
     },
 

@@ -15,7 +15,7 @@ State lives in tool-result details, so branching keeps the list correct.
 ## Use
 
 ```bash
-pi install npm:@ravshansbox/pi-todo   # or -l for project settings
-pi -e .                               # try without installing
-npm run check                         # type-check
+pi install git:github.com/ravshansbox/pi-todo   # or -l for project settings
+pi -e .                                         # try without installing
+npm run check                                   # type-check
 ```

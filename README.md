@@ -5,7 +5,7 @@ Todo list extension for pi.
 ## Install
 
 ```bash
-pi install git:github.com/ravshansbox/pi-todo
+pi install npm:@ravshansbox/pi-todo
 ```
 
 Add `-l` to install it in project settings.

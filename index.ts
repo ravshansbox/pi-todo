@@ -1,17 +1,3 @@
-/**
- * Todo Extension - Demonstrates state management via session entries
- *
- * This extension:
- * - Registers a `todo` tool for the LLM to manage todos
- * - Registers a `/todos` command for users to view the list
- * - Shows a persistent widget above the editor, which disappears once every
- *   todo is checked off because the list clears itself
- *
- * State is stored in tool result details (not external files), which allows
- * proper branching - when you branch, the todo state is automatically
- * correct for that point in history.
- */
-
 import { StringEnum } from '@earendil-works/pi-ai';
 import type {
   AgentToolResult,
@@ -24,7 +10,6 @@ import { type Static, Type } from 'typebox';
 
 const TOOL_NAME = 'todo';
 const WIDGET_KEY = 'todo';
-/** Items shown before collapsing to a "N more" line. */
 const WIDGET_MAX_ITEMS = 5;
 const RESULT_MAX_ITEMS = 5;
 
@@ -36,7 +21,6 @@ interface Todo {
   done: boolean;
 }
 
-/** Mutable in-memory state, rebuilt from session entries on load. */
 interface TodoState {
   todos: Todo[];
   nextId: number;
@@ -56,18 +40,12 @@ const TodoParams = Type.Object({
 });
 type TodoParams = Static<typeof TodoParams>;
 
-// --- Formatting -------------------------------------------------------------
-
 const plainTodoLine = (todo: Todo): string =>
   `${todo.done ? '[x]' : '[ ]'} #${todo.id}: ${todo.text}`;
 
 const formatPlainList = (todos: Todo[]): string =>
   todos.length === 0 ? 'No todos' : todos.map(plainTodoLine).join('\n');
 
-/**
- * `openColor` differs per surface: the widget uses full-contrast text, while
- * inline tool results stay muted so they recede into the transcript.
- */
 const styledTodoLine = (todo: Todo, theme: Theme, openColor: 'text' | 'muted'): string => {
   const check = todo.done ? theme.fg('success', '✓') : theme.fg('dim', '○');
   const text = todo.done ? theme.fg('dim', todo.text) : theme.fg(openColor, todo.text);
@@ -78,8 +56,6 @@ const firstText = (content: readonly { type: string; text?: string }[]): string 
   const first = content[0];
   return first?.type === 'text' ? (first.text ?? '') : '';
 };
-
-// --- Tool actions -----------------------------------------------------------
 
 const toolResult = (text: string, details: TodoDetails): AgentToolResult<TodoDetails> => ({
   content: [{ type: 'text', text }],
@@ -120,10 +96,6 @@ const ACTIONS: Record<TodoAction, ActionHandler> = {
     }
     todo.done = !todo.done;
 
-    // Finishing the last open item retires the whole list: the completed rows
-    // carry no further action, and the tool result above still records them.
-    // Resetting here (rather than in the widget) persists via the snapshot, so
-    // it survives reloads and branches correctly.
     if (state.todos.every((t) => t.done)) {
       const cleared = state.todos.length;
       state.todos = [];
@@ -147,8 +119,6 @@ const ACTIONS: Record<TodoAction, ActionHandler> = {
     return toolResult(`Cleared ${count} todos`, snapshot(state, 'clear'));
   },
 };
-
-// --- Result rendering -------------------------------------------------------
 
 interface ResultRenderArgs {
   details: TodoDetails;
@@ -193,11 +163,8 @@ const RESULT_RENDERERS: Record<TodoAction, (args: ResultRenderArgs) => Text> = {
     new Text(theme.fg('success', '✓ ') + theme.fg('muted', 'Cleared all todos'), 0, 0),
 };
 
-// --- Widget and overlay -----------------------------------------------------
-
 const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   const done = todos.filter((t) => t.done).length;
-  // Open items first, so the widget stays useful as the list grows.
   const ordered = [...todos.filter((t) => !t.done), ...todos.filter((t) => t.done)];
   const lines = [theme.fg('accent', 'Todos ') + theme.fg('muted', `${done}/${todos.length}`)];
   for (const todo of ordered.slice(0, WIDGET_MAX_ITEMS)) {
@@ -210,7 +177,6 @@ const widgetLines = (todos: Todo[], theme: Theme): string[] => {
   return lines;
 };
 
-/** Renders the widget above the editor, clearing it when there is nothing to show. */
 const renderWidget = (ctx: ExtensionContext, todos: Todo[]): void => {
   if (!ctx.hasUI) return;
   ctx.ui.setWidget(WIDGET_KEY, todos.length === 0 ? undefined : widgetLines(todos, ctx.ui.theme), {
@@ -251,7 +217,6 @@ const overlayLines = (todos: Todo[], theme: Theme, width: number): string[] => {
   return lines;
 };
 
-/** UI component for the /todos command. */
 class TodoListComponent {
   private cachedWidth?: number | undefined;
   private cachedLines?: string[] | undefined;
@@ -282,12 +247,6 @@ class TodoListComponent {
   }
 }
 
-// --- Session state ----------------------------------------------------------
-
-/**
- * Reconstruct state from session entries.
- * Scans tool results for this tool and applies them in order.
- */
 const reconstructState = (ctx: ExtensionContext, state: TodoState): void => {
   state.todos = [];
   state.nextId = 1;
@@ -316,7 +275,6 @@ export default function (pi: ExtensionAPI) {
   pi.on('session_start', (_event, ctx) => reload(ctx));
   pi.on('session_tree', (_event, ctx) => reload(ctx));
 
-  // Refresh the widget after the tool mutates state
   pi.on('tool_result', (event, ctx) => {
     if (event.toolName === TOOL_NAME) renderWidget(ctx, state.todos);
   });

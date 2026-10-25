@@ -64,7 +64,7 @@ const toolResult = (text: string, details: TodoDetails): AgentToolResult<TodoDet
 
 const snapshot = (state: TodoState, action: TodoAction, error?: string): TodoDetails => ({
   action,
-  todos: [...state.todos],
+  todos: state.todos.map((t) => ({ ...t })),
   nextId: state.nextId,
   error,
 });
@@ -258,7 +258,7 @@ const reconstructState = (ctx: ExtensionContext, state: TodoState): void => {
 
     const details = msg.details as TodoDetails | undefined;
     if (details) {
-      state.todos = details.todos;
+      state.todos = details.todos.map((t) => ({ ...t }));
       state.nextId = details.nextId;
     }
   }

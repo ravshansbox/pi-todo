@@ -220,12 +220,15 @@ const overlayLines = (todos: Todo[], theme: Theme, width: number): string[] => {
 class TodoListComponent {
   private cachedWidth?: number | undefined;
   private cachedLines?: string[] | undefined;
+  private todos: Todo[];
+  private theme: Theme;
+  private onClose: () => void;
 
-  constructor(
-    private todos: Todo[],
-    private theme: Theme,
-    private onClose: () => void,
-  ) {}
+  constructor(todos: Todo[], theme: Theme, onClose: () => void) {
+    this.todos = todos;
+    this.theme = theme;
+    this.onClose = onClose;
+  }
 
   handleInput(data: string): void {
     if (matchesKey(data, 'escape') || matchesKey(data, 'ctrl+c')) {
